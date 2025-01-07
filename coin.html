@@ -1,0 +1,416 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>spine-pixi-v8</title>
+    <script src="./assets/pixi.min.js"></script>
+    <script src="./assets/spine-pixi-v8.js"></script>
+    <script src="./assets/lil-gui.umd.min.js"></script>
+    <link href="./assets/lil-gui.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../index.css">
+  </head>
+
+  <body>
+    <div style="display: none;">
+      <p>Postion X</p>
+      <input class="uk-input" type="number" min="0.01" step="1.00" id="optionX">
+      <p>Postion Y</p>
+      <input class="uk-input" type="number" min="0.01" step="1.00" id="optionY">
+      <button onclick="skindebug()"></button>
+    </div>
+
+
+    <div class="uk-width-1-1" style="display: none;">
+      <p><label><input class="uk-checkbox" type="checkbox" id="optionAutoPos" checked> Auto Centerize</label></p>
+    </div>
+
+    <script>
+      let spineboy;
+      let spineboy2
+      let currentModelIndex = 0;
+      let ModelNum = 0;
+        const models = [
+            {
+                data: 'WuWa/Jinhsi/c_jinxi_1.json',
+                atlas: 'WuWa/Jinhsi/c_jinxi_1.atlas'
+            },
+            {
+                data: 'WuWa/Jinhsi/PeachBlossom/c_jinxi_2.json',
+                atlas: 'WuWa/Jinhsi/PeachBlossom/c_jinxi_2.atlas'
+            },
+            {
+                data: 'WuWa/Sanhua/ExorcisticAdjuration/c_sanhua_2.json',
+                atlas: 'WuWa/Sanhua/ExorcisticAdjuration/c_sanhua_2.atlas'
+            },
+            {
+                data: 'WuWa/Carlotta/c_kelaita_1.json',
+                atlas: 'WuWa/Carlotta/c_kelaita_1.atlas'
+            },
+            {
+                data: 'WuWa/Roccia/c_luokeke_1.json',
+                atlas: 'WuWa/Roccia/c_luokeke_1.atlas'
+            },
+            {
+                data: 'WuWa/Zhezhi/c_zhezhi_01.json',
+                atlas: 'WuWa/Zhezhi/c_zhezhi_01.atlas'
+            }
+        ];
+
+      (async function loadModel() {
+        var app = new PIXI.Application();
+        await app.init({
+          width: window.innerWidth,
+          height: window.innerHeight,
+          resolution: window.devicePixelRatio || 1,
+          autoDensity: true,
+          resizeTo: window,
+          backgroundColor: 0x2c3e50,
+          hello: true,
+        })
+        app.view.id = "screen";
+        document.body.appendChild(app.view);
+
+        const currentModel = models[currentModelIndex];
+
+        // Pre-load the skeleton data and atlas. You can also load .json skeleton data.
+        PIXI.Assets.add({alias: "spineboyData", src: currentModel.data});
+        PIXI.Assets.add({alias: "spineboyAtlas", src: currentModel.atlas});
+        await PIXI.Assets.load(["spineboyData", "spineboyAtlas"]);
+
+        // Create the spine display object
+         spineboy = spine.Spine.from({
+          skeleton: "spineboyData",
+          atlas: "spineboyAtlas",
+          scale: 1,
+          // darkTint: true,
+        });
+                // Pre-load the skeleton data and atlas. You can also load .json skeleton data.
+        PIXI.Assets.add({alias: "spineboyDataa", src: "WuWa/Jinhsi/PeachBlossom/c_jinxi_2.json"});
+        PIXI.Assets.add({alias: "spineboyAtlass", src: "WuWa/Jinhsi/PeachBlossom/c_jinxi_2.atlas"});
+        await PIXI.Assets.load(["spineboyDataa", "spineboyAtlass"]);
+
+        // Create the spine display object
+         spineboy2 = spine.Spine.from({
+          skeleton: "spineboyDataa",
+          atlas: "spineboyAtlass",
+          scale: 1,
+          // darkTint: true,
+        });
+
+        // Set the default mix time to use when transitioning
+        // from one animation to the next.
+        spineboy.state.data.defaultMix = 0.2;
+        spineboy2.state.data.defaultMix = 0.2;
+
+        // Center the spine object on screen.
+        spineboy.x = window.innerWidth / 2;
+        spineboy.y = window.innerHeight / 2;
+        spineboy2.x = window.innerWidth / 2;
+        spineboy2.y = window.innerHeight / 2;
+
+        // Set animation "run" on track 0, looped.
+        const animationName = "animation";
+
+        //Animation on Start-Up
+        if (spineboy.skeleton.data.animations.length > 0) {
+            const firstAnimationName = spineboy.skeleton.data.animations[0].name;
+            spineboy.state.setAnimation(0, firstAnimationName, true);
+        }
+        if (spineboy2.skeleton.data.animations.length > 0) {
+            const firstAnimationName = spineboy2.skeleton.data.animations[0].name;
+            spineboy2.state.setAnimation(0, firstAnimationName, true);
+        }
+
+        // Add the display object to the stage.
+        app.stage.addChild(spineboy);
+
+        const myObject = {
+          time: 0,
+          time2: 0,
+          myNumber: 1
+        };
+        const params = {
+          scale: 1.00,
+          posx: 0,
+          posy: 0,
+        };
+        let prevValue = myObject.time;
+        let prevValue2 = myObject.time2;
+        spineboy.update(prevValue / 10)
+
+        //Model 1
+
+        const gui = new lil.GUI({});
+        objAnimm = { Model: 'Jinhsi'}
+
+        gui
+        .add( objAnimm, 'Model', [ 'Jinhsi', '"PB-Jinhsi"'] )
+          .onChange((value) => {
+            if (value === "\"PB-Jinhsi\"") {
+            ModelNum = 1;
+            app.stage.removeChild(spineboy);
+            app.stage.addChild(spineboy2);
+
+            } else if (value === "Jinhsi") {
+              ModelNum = 0;
+            app.stage.removeChild(spineboy2);
+            app.stage.addChild(spineboy);
+            }
+          });
+
+        //Model 1
+        const folderModel1 = gui.addFolder( 'Base Model' );
+        const folderTransform = folderModel1.addFolder( 'Transformation' );
+        const folderStyle = folderModel1.addFolder( 'Style' );
+        /////////////////////////////////////
+        //Transformation
+        ///////////////////
+        //Scale
+        folderTransform
+          .add(params, 'scale', 0.0, 5.0).step(0.01)
+          .onChange(() => {
+            if (ModelNum === 0){
+              spineboy.scale.x = spineboy.scale.y = Math.max(params.scale, 0);
+            } else if(ModelNum === 1){
+              spineboy2.scale.x = spineboy2.scale.y = Math.max(params.scale, 0);
+            }
+          });
+        ///////////////////
+        //Position X
+        const posxController = folderTransform
+          .add(params, 'posx', -2000.0, 2000.0).step(1.00)
+          .onChange(() => {
+            if (ModelNum === 0){
+              spineboy.x = params.posx;
+              params.posx = spineboy.x;
+              posxController.updateDisplay();
+            } else if(ModelNum === 1){
+              spineboy2.x = params.posx;
+              params.posx = spineboy2.x;
+              posxController.updateDisplay();
+            }
+
+        });
+        ///////////////////
+        //Position Y
+        const posyController = folderTransform
+          .add(params, 'posy', -2000.0, 2000.0).step(1.00)
+          .onChange(() => {
+            if (ModelNum === 0){
+              spineboy.y = params.posy;
+              params.posy = spineboy.y;
+              posyController.updateDisplay();
+            } else if(ModelNum === 1){
+              spineboy2.y = params.posy;
+              params.posy = spineboy2.y;
+              posyController.updateDisplay();
+            }
+
+        });
+        /////////////////////////////////////
+        //Style
+        ///////////////////
+        //Skins
+        objSkin = { Skin: 'default'}
+        const skinController = folderStyle
+          .add( objSkin, 'Skin', [ 'default', 'placeholder', 'placeholder' ] )
+          .onChange((value) => {
+            spineboy.skeleton.setSkinByName(value);
+            spineboy.skeleton.setSlotsToSetupPose();
+          });
+        //Animation
+        objAnim = { Animation: 'idle'}
+        const animController = folderStyle
+          .add( objAnim, 'Animation', [ 'idle', 'animation', 'idle' ] )
+          .onChange((value) => {
+            spineboy.state.setAnimation(0, value, true);
+            spineboy2.state.setAnimation(0, value, true);
+
+          });
+        //Time
+        const animControllerr = folderStyle
+        .add(myObject, 'time').min(0).max(7).step(0.001)
+          .name( 'time' )
+          .onChange(value => {
+            spineboy.update((value - prevValue) / 10)
+            spineboy2.update((value - prevValue) / 10)
+
+            prevValue = value;
+          });
+        /////////////////////////////////
+
+
+
+        /////////////////////////////////////
+        //Debug
+        //const folderDebug = gui.addFolder( 'Debugging' );
+        ///////////////////
+
+        gui.add({ changeModel: () => {
+            console.log("Json:", currentModel.data);
+            console.log("Atlas:", currentModel.atlas);
+        }}, 'changeModel').name('Debug');
+
+        ///////////////////////
+        // Draggable Canvas
+        ///////////////////////
+        let canvasScreen = document.getElementById("screen");
+        console.log("Before accessing canvasScreen:", canvasScreen);
+        console.log("After accessing canvasScreen:", canvasScreen);
+        let isDragging = false;
+        let canMouseX, canMouseY;
+        let initMouseX, initMouseY;
+        let canvasX, canvasY;
+
+        canvasScreen.addEventListener("mousedown", handleMouseDown);
+        canvasScreen.addEventListener("mouseup", handleMouseUp);
+        canvasScreen.addEventListener("mouseout", handleMouseOut);
+        canvasScreen.addEventListener("mousemove", handleMouseMove);
+
+        canvasScreen.addEventListener("touchstart", handleTouchStart);
+        canvasScreen.addEventListener("touchend", handleTouchEnd);
+        canvasScreen.addEventListener("touchmove", handleTouchMove);
+
+        function handleMouseDown(e) {
+            e.preventDefault();
+            if (ModelNum === 0){
+              canvasX = -spineboy.x;
+              canvasY = -spineboy.y;
+              initMouseX = parseInt(e.clientX - canvasX);
+              initMouseY = parseInt(e.clientY - canvasY);
+              isDragging = true;
+            } else if(ModelNum === 1){
+              canvasX = -spineboy2.x;
+              canvasY = -spineboy2.y;
+              initMouseX = parseInt(e.clientX - canvasX);
+              initMouseY = parseInt(e.clientY - canvasY);
+              isDragging = true;
+            }
+
+        }
+
+        function handleMouseUp(e) {
+            isDragging = false;
+        }
+
+        function handleMouseOut(e) {
+            isDragging = false;
+        }
+
+        function handleMouseMove(e) {
+            canMouseX = parseInt(e.clientX - canvasX);
+            canMouseY = parseInt(e.clientY - canvasY);
+            if (
+            isDragging &&
+            (initMouseX - canMouseX !== 0 || initMouseY - canMouseY !== 0)
+            ) {
+            option.autoPos.checked = false;
+            if (ModelNum === 0){
+              spineboy.x = option.x.value = -(canvasX + initMouseX - canMouseX);
+              spineboy.y = option.y.value = -(canvasY + initMouseY - canMouseY);
+
+              params.posx = spineboy.x;
+              params.posy = spineboy.y;
+            } else if(ModelNum === 1){
+              spineboy2.x = option.x.value = -(canvasX + initMouseX - canMouseX);
+              spineboy2.y = option.y.value = -(canvasY + initMouseY - canMouseY);
+
+              params.posx = spineboy2.x;
+              params.posy = spineboy2.y;
+            }
+
+            posxController.updateDisplay();
+            posyController.updateDisplay();
+
+            }
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (ModelNum === 0){
+              canvasX = -spineboy.x;
+              canvasY = -spineboy.y;
+            } else if(ModelNum === 1){
+              canvasX = -spineboy2.x;
+              canvasY = -spineboy2.y;
+            }
+            initMouseX = parseInt(e.touches[0].clientX - canvasX);
+            initMouseY = parseInt(e.touches[0].clientY - canvasY);
+            isDragging = true;
+        }
+
+        function handleTouchEnd(e) {
+            isDragging = false;
+        }
+
+        function handleTouchMove(e) {
+            canMouseX = parseInt(e.touches[0].clientX - canvasX);
+            canMouseY = parseInt(e.touches[0].clientY - canvasY);
+            if (
+            isDragging &&
+            (initMouseX - canMouseX !== 0 || initMouseY - canMouseY !== 0)
+            ) {
+            option.autoPos.checked = false;
+            let newScale = -(canvasX + initMouseX - canMouseX) / window.innerWidth;
+            newScale = Math.max(0, Math.min(1, newScale));
+            if (ModelNum === 0){
+              spineboy.scale.x = spineboy.scale.y = option.scale.value = newScale;
+            } else if(ModelNum === 1){
+              spineboy2.scale.x = spineboy2.scale.y = option.scale.value = newScale;
+            }
+            }
+        }
+
+      })();
+
+
+
+
+      let option = {
+        models: document.getElementById("optionModels"),
+                skins: document.getElementById("optionSkins"),
+                autoPos: document.getElementById("optionAutoPos"),
+                x: document.getElementById("optionX"),
+                y: document.getElementById("optionY"),
+            }
+
+            option.autoPos.onchange = function() {
+                    return;
+                if(this.checked) {
+                    option.x.disabled = option.y.disabled = true;
+                    option.x.value = spineboy.x = window.innerWidth/2;
+                    option.y.value = spineboy.y = window.innerHeight/1;
+                    option.x.value = spineboy2.x = window.innerWidth/2;
+                    option.y.value = spineboy2.y = window.innerHeight/1;
+
+                } else {
+                    option.x.disabled = option.y.disabled = false;
+                }
+            }
+
+            function setSkinByName(skinName) {
+              spineboy.skeleton.setSkin(null);
+              spineboy.skeleton.setSkinByName(skinName);
+              spineboy.skeleton.setSlotsToSetupPose(); // Reset slot attachments
+              spineboy.state.apply(spineboy.skeleton); // Apply any changes to the animatio
+              spineboy2.skeleton.setSkin(null);
+              spineboy2.skeleton.setSkinByName(skinName);
+              spineboy2.skeleton.setSlotsToSetupPose(); // Reset slot attachments
+              spineboy2.state.apply(spineboy.skeleton); // Apply any changes to the animatio
+            }
+
+            function skindebug() {
+              console.log("Available Skins:", spineboy.skeleton.data);
+              console.log("Available Skins 2:", spineboy2.skeleton.data);
+              const allSpineData = spineboy.skeleton.data;
+
+              for (const skin of allSpineData.skins) {
+                  console.log("Skin Name:", skin.name);
+              }
+            if (ModelNum === 0){
+            } else if(ModelNum === 1){
+            }
+            }
+
+    </script>
+  </body>
+</html>
