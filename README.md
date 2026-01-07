@@ -1,7 +1,7 @@
 # SpineVEE4.2
 SpineVEE 4.2+ Rewrite test
 
-**V3 Update (January 7, 2026)**
+# V3 Update (January 7, 2026)
 
 I randomly decided to update this after how long lol.
 
