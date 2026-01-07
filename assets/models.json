@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Jinhsi",
+        "data": "WuWa/Jinhsi/c_jinxi_1.json",
+        "atlas": "WuWa/Jinhsi/c_jinxi_1.atlas"
+    },
+    {
+        "name": "PB-Jinhsi",
+        "data": "WuWa/Jinhsi/PeachBlossom/c_jinxi_2.json",
+        "atlas": "WuWa/Jinhsi/PeachBlossom/c_jinxi_2.atlas"
+    },
+    {
+        "name": "Sanhua",
+        "data": "WuWa/Sanhua/ExorcisticAdjuration/c_sanhua_2.json",
+        "atlas": "WuWa/Sanhua/ExorcisticAdjuration/c_sanhua_2.atlas"
+    },
+    {
+        "name": "Carlotta",
+        "data": "WuWa/Carlotta/c_kelaita_1.json",
+        "atlas": "WuWa/Carlotta/c_kelaita_1.atlas"
+    },
+    {
+        "name": "Roccia",
+        "data": "WuWa/Roccia/c_luokeke_1.json",
+        "atlas": "WuWa/Roccia/c_luokeke_1.atlas"
+    },
+    {
+        "name": "Zhezhi",
+        "data": "WuWa/Zhezhi/c_zhezhi_01.json",
+        "atlas": "WuWa/Zhezhi/c_zhezhi_01.atlas"
+    },
+    {
+        "name": "Carty",
+        "data": "WuWa/Carty/c_katixiya_1.json",
+        "atlas": "WuWa/Carty/c_katixiya_1.atlas"
+    },
+    {
+        "name": "Ciaconna",
+        "data": "WuWa/Ciaconna/c_xiakong_1.json",
+        "atlas": "WuWa/Ciaconna/c_xiakong_1.atlas"
+    },
+    {
+        "name": "Augusta",
+        "data": "WuWa/Augusta/c_augusta_1.json",
+        "atlas": "WuWa/Augusta/c_augusta_1.atlas"
+    },
+    {
+        "name": "Iuno",
+        "data": "WuWa/Iuno/c_younuo_1.json",
+        "atlas": "WuWa/Iuno/c_younuo_1.atlas"
+    },
+    {
+        "name": "Moryne",
+        "data": "WuWa/Moryne/c_moning_1.json",
+        "atlas": "WuWa/Moryne/c_moning_1.atlas"
+    },
+    {
+        "name": "Lynae",
+        "data": "WuWa/Lynae/c_linnai_1.json",
+        "atlas": "WuWa/Lynae/c_linnai_1.atlas"
+    }
+]

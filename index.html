@@ -1,0 +1,419 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>spine-pixi-v8</title>
+    <script src="./assets/pixi.min.js"></script>
+    <script src="./assets/spine-pixi-v8.js"></script>
+    <script src="./assets/lil-gui.umd.min.js"></script>
+    <link href="./assets/lil-gui.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../index.css">
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div style="display: none;">
+      <p>Postion X</p>
+      <input class="uk-input" type="number" min="0.01" step="1.00" id="optionX">
+      <p>Postion Y</p>
+      <input class="uk-input" type="number" min="0.01" step="1.00" id="optionY">
+      <button onclick="skindebug()"></button>
+    </div>
+
+
+    <div class="uk-width-1-1" style="display: none;">
+      <p><label><input class="uk-checkbox" type="checkbox" id="optionAutoPos" checked> Auto Centerize</label></p>
+    </div>
+
+    <script>
+      let spineboy;
+      let currentModelIndex = 0;
+      let app;
+      let models = []; // models.json
+      let params = {
+        scale: 1.00,
+        posx: 0,
+        posy: 0,
+      };
+      let myObject = {
+        time: 0,
+        myNumber: 1
+      };
+      let prevValue = myObject.time;
+
+      async function loadModel(modelIndex) {
+        const currentModel = models[modelIndex];
+        
+        // Use unique aliases for each model to avoid caching issues
+        const dataAlias = `model_${modelIndex}_data`;
+        const atlasAlias = `model_${modelIndex}_atlas`;
+        
+        // Pre-load the skeleton data and atlas
+        PIXI.Assets.add({alias: dataAlias, src: currentModel.data});
+        PIXI.Assets.add({alias: atlasAlias, src: currentModel.atlas});
+        await PIXI.Assets.load([dataAlias, atlasAlias]);
+
+        // Create the spine objectdata
+        spineboy = spine.Spine.from({
+          skeleton: dataAlias,
+          atlas: atlasAlias,
+          scale: 1,
+        });
+
+        // Set the default mix time
+        spineboy.state.data.defaultMix = 0.2;
+
+        // Center the spine object on screen
+        spineboy.x = window.innerWidth / 2;
+        spineboy.y = window.innerHeight / 2;
+
+        // Reset parameters
+        params.scale = 1.00;
+        params.posx = spineboy.x;
+        params.posy = spineboy.y;
+
+        // Play first animation on startup
+        if (spineboy.skeleton.data.animations.length > 0) {
+            const firstAnimationName = spineboy.skeleton.data.animations[0].name;
+            spineboy.state.setAnimation(0, firstAnimationName, true);
+        }
+
+        return spineboy;
+      }
+
+      (async function initializeApp() {
+        // Load models list from json file
+        const response = await fetch('assets/models.json');
+        models = await response.json();
+
+        app = new PIXI.Application();
+        await app.init({
+          width: window.innerWidth,
+          height: window.innerHeight,
+          resolution: window.devicePixelRatio || 1,
+          autoDensity: true,
+          resizeTo: window,
+          backgroundColor: 0x2c3e50,
+          hello: true,
+        })
+        app.view.id = "screen";
+        document.body.appendChild(app.view);
+
+        // Load the first model
+        spineboy = await loadModel(0);
+        app.stage.addChild(spineboy);
+
+        //Model Selection
+        const gui = new lil.GUI({});
+        const modelNames = models.map(m => m.name);
+        const objAnimm = { Model: modelNames[0] }
+
+        gui
+        .add(objAnimm, 'Model', modelNames)
+          .onChange(async (value) => {
+            const newIndex = models.findIndex(m => m.name === value);
+            currentModelIndex = newIndex;
+            
+            // Remove old model and load new one
+            app.stage.removeChild(spineboy);
+            spineboy = await loadModel(newIndex);
+            app.stage.addChild(spineboy);
+            
+            // Update animation dropdown with new models animations
+            const newAnimNames = spineboy.skeleton.data.animations.map(anim => anim.name);
+            objAnim.Animation = newAnimNames[0];
+            animController.options(newAnimNames);
+            animController.updateDisplay();
+            
+            // Update timeline for new animation
+            updateTimelineRange();
+            
+            // Reset controllers to reflect new model's position
+            posxController.updateDisplay();
+            posyController.updateDisplay();
+            scaleController.updateDisplay();
+          });
+
+        //Model 1
+        const folderModel1 = gui.addFolder( 'Base Model' );
+        const folderTransform = folderModel1.addFolder( 'Transformation' );
+        const folderStyle = folderModel1.addFolder( 'Style' );
+        //Transformation
+        ///////////////////
+        //Scale
+        const scaleController = folderTransform
+          .add(params, 'scale', 0.0, 5.0).step(0.01)
+          .onChange(() => {
+            spineboy.scale.x = spineboy.scale.y = Math.max(params.scale, 0);
+          });
+        ///////////////////
+        //Position X
+        const posxController = folderTransform
+          .add(params, 'posx', -2000.0, 2000.0).step(1.00)
+          .onChange(() => {
+            spineboy.x = params.posx;
+            params.posx = spineboy.x;
+            posxController.updateDisplay();
+        });
+        ///////////////////
+        //Position Y
+        const posyController = folderTransform
+          .add(params, 'posy', -2000.0, 2000.0).step(1.00)
+          .onChange(() => {
+            spineboy.y = params.posy;
+            params.posy = spineboy.y;
+            posyController.updateDisplay();
+        });
+        /////////////////////////////////////
+        //Style
+        ///////////////////
+        //Skins
+        objSkin = { Skin: 'default'}
+        const skinController = folderStyle
+          .add( objSkin, 'Skin', [ 'default', 'placeholder', 'placeholder' ] )
+          .onChange((value) => {
+            spineboy.skeleton.setSkinByName(value);
+            spineboy.skeleton.setSlotsToSetupPose();
+          });
+        //Animation
+        objAnim = { Animation: spineboy.skeleton.data.animations.length > 0 ? spineboy.skeleton.data.animations[0].name : 'idle'}
+        const animationNames = spineboy.skeleton.data.animations.map(anim => anim.name);
+        
+        // Play/Pause state
+        let isPlaying = false;
+        const playbackControl = { 
+          'First Frame': () => {
+            myObject.time = 0;
+            animTimeController.updateDisplay();
+            if (spineboy.state.tracks[0]) {
+              spineboy.state.tracks[0].trackTime = 0;
+              spineboy.state.tracks[0].timeScale = 0;
+              isPlaying = false;
+            }
+          },
+          'Play/Pause': () => {
+            isPlaying = !isPlaying;
+            if (spineboy.state.tracks[0]) {
+              if (isPlaying) {
+                spineboy.state.tracks[0].timeScale = 1;
+              } else {
+                spineboy.state.tracks[0].timeScale = 0;
+              }
+            }
+          },
+          'Last Frame': () => {
+            const currentAnim = spineboy.skeleton.data.findAnimation(objAnim.Animation);
+            if (currentAnim && spineboy.state.tracks[0]) {
+              myObject.time = currentAnim.duration;
+              animTimeController.updateDisplay();
+              spineboy.state.tracks[0].trackTime = currentAnim.duration;
+              spineboy.state.tracks[0].timeScale = 0;
+              isPlaying = false;
+            }
+          }
+        };
+        
+        // Function to update timeline based on current animation
+        function updateTimelineRange() {
+          const currentAnim = spineboy.skeleton.data.findAnimation(objAnim.Animation);
+          if (currentAnim) {
+            myObject.time = 0;
+            animTimeController.max(currentAnim.duration);
+            animTimeController.updateDisplay();
+          }
+        }
+        
+        const animController = folderStyle
+          .add(objAnim, 'Animation', animationNames)
+          .onChange((value) => {
+            spineboy.state.setAnimation(0, value, false);
+            isPlaying = false; // Pause when changing animations
+            updateTimelineRange();
+          });
+        
+        // Playback controls
+        folderStyle.add(playbackControl, 'First Frame');
+        folderStyle.add(playbackControl, 'Play/Pause');
+        folderStyle.add(playbackControl, 'Last Frame');
+        
+        //Time Scrubber
+        const animTimeController = folderStyle
+        .add(myObject, 'time').min(0).max(spineboy.skeleton.data.animations[0].duration).step(0.001)
+          .name( 'Animation Time' )
+          .onChange(value => {
+            // Set to specific time
+            if (spineboy.state.tracks[0]) {
+              spineboy.state.tracks[0].trackTime = value;
+              if (!isPlaying) {
+                spineboy.state.tracks[0].timeScale = 0; // Keep paused if not playing
+              }
+            }
+          });
+        
+        // Initialize timeline range
+        updateTimelineRange();
+        /////////////////////////////////
+
+
+
+        /////////////////////////////////////
+        //Debug
+        //const folderDebug = gui.addFolder( 'Debugging' );
+        ///////////////////
+
+        gui.add({ changeModel: () => {
+            const currentModel = models[currentModelIndex];
+            console.log("Json:", currentModel.data);
+            console.log("Atlas:", currentModel.atlas);
+        }}, 'changeModel').name('Debug');
+
+        ///////////////////////
+        // Draggable Canvas
+        ///////////////////////
+        let canvasScreen = document.getElementById("screen");
+        console.log("Before accessing canvasScreen:", canvasScreen);
+        console.log("After accessing canvasScreen:", canvasScreen);
+        let isDragging = false;
+        let canMouseX, canMouseY;
+        let initMouseX, initMouseY;
+        let canvasX, canvasY;
+
+        canvasScreen.addEventListener("mousedown", handleMouseDown);
+        canvasScreen.addEventListener("mouseup", handleMouseUp);
+        canvasScreen.addEventListener("mouseout", handleMouseOut);
+        canvasScreen.addEventListener("mousemove", handleMouseMove);
+
+        canvasScreen.addEventListener("touchstart", handleTouchStart);
+        canvasScreen.addEventListener("touchend", handleTouchEnd);
+        canvasScreen.addEventListener("touchmove", handleTouchMove);
+        canvasScreen.addEventListener("wheel", handleWheel);
+
+        function handleWheel(e) {
+            e.preventDefault();
+            // deltaY is positive when scrolling down, negative when scrolling up
+            const zoomSpeed = 0.001;
+            const delta = -e.deltaY * zoomSpeed;
+            
+            params.scale = Math.max(0.1, Math.min(5.0, params.scale + delta));
+            spineboy.scale.x = spineboy.scale.y = params.scale;
+            scaleController.updateDisplay();
+        }
+
+        function handleMouseDown(e) {
+            e.preventDefault();
+            window.startX = spineboy.x;
+            window.startY = spineboy.y;
+            window.startMouseX = e.clientX;
+            window.startMouseY = e.clientY;
+            window.isDragging = true;
+        }
+
+        function handleMouseUp(e) {
+            window.isDragging = false;
+        }
+
+        function handleMouseOut(e) {
+            window.isDragging = false;
+        }
+
+        function handleMouseMove(e) {
+            if (window.isDragging) {
+                const deltaX = e.clientX - window.startMouseX;
+                const deltaY = e.clientY - window.startMouseY;
+                
+                spineboy.x = window.startX + deltaX;
+                spineboy.y = window.startY + deltaY;
+                
+                params.posx = spineboy.x;
+                params.posy = spineboy.y;
+
+                posxController.updateDisplay();
+                posyController.updateDisplay();
+            }
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            window.startX = spineboy.x;
+            window.startY = spineboy.y;
+            window.startMouseX = e.touches[0].clientX;
+            window.startMouseY = e.touches[0].clientY;
+            window.isDragging = true;
+        }
+
+        function handleTouchEnd(e) {
+            window.isDragging = false;
+        }
+
+        function handleTouchMove(e) {
+            if (window.isDragging) {
+                const deltaX = e.touches[0].clientX - window.startMouseX;
+                const deltaY = e.touches[0].clientY - window.startMouseY;
+                
+                spineboy.x = window.startX + deltaX;
+                spineboy.y = window.startY + deltaY;
+                
+                params.posx = spineboy.x;
+                params.posy = spineboy.y;
+                
+                posxController.updateDisplay();
+                posyController.updateDisplay();
+            }
+        }
+
+      })();
+
+
+
+
+
+      initializeApp();
+
+      let option = {
+        models: document.getElementById("optionModels"),
+                skins: document.getElementById("optionSkins"),
+                autoPos: document.getElementById("optionAutoPos"),
+                x: document.getElementById("optionX"),
+                y: document.getElementById("optionY"),
+            }
+
+            option.autoPos.onchange = function() {
+                    return;
+                if(this.checked) {
+                    option.x.disabled = option.y.disabled = true;
+                    option.x.value = spineboy.x = window.innerWidth/2;
+                    option.y.value = spineboy.y = window.innerHeight/1;
+                    option.x.value = spineboy2.x = window.innerWidth/2;
+                    option.y.value = spineboy2.y = window.innerHeight/1;
+
+                } else {
+                    option.x.disabled = option.y.disabled = false;
+                }
+            }
+
+            function setSkinByName(skinName) {
+              spineboy.skeleton.setSkin(null);
+              spineboy.skeleton.setSkinByName(skinName);
+              spineboy.skeleton.setSlotsToSetupPose(); // Reset slot attachments
+              spineboy.state.apply(spineboy.skeleton); // Apply any changes to the animatio
+            }
+
+            function skindebug() {
+              console.log("Available Skins:", spineboy.skeleton.data);
+              const allSpineData = spineboy.skeleton.data;
+
+              for (const skin of allSpineData.skins) {
+                  console.log("Skin Name:", skin.name);
+              }
+            }
+
+    </script>
+  </body>
+</html>
