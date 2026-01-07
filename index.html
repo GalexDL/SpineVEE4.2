@@ -341,19 +341,56 @@
 
         function handleTouchStart(e) {
             e.preventDefault();
-            window.startX = spineboy.x;
-            window.startY = spineboy.y;
-            window.startMouseX = e.touches[0].clientX;
-            window.startMouseY = e.touches[0].clientY;
-            window.isDragging = true;
+            
+            if (e.touches.length === 2) {
+                // Pinch zoom starting
+                window.isPinching = true;
+                window.isDragging = false;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                window.initialPinchDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                window.initialScale = params.scale;
+            } else if (e.touches.length === 1) {
+                // Single touch for dragging
+                window.isPinching = false;
+                window.startX = spineboy.x;
+                window.startY = spineboy.y;
+                window.startMouseX = e.touches[0].clientX;
+                window.startMouseY = e.touches[0].clientY;
+                window.isDragging = true;
+            }
         }
 
         function handleTouchEnd(e) {
-            window.isDragging = false;
+            if (e.touches.length < 2) {
+                window.isPinching = false;
+            }
+            if (e.touches.length === 0) {
+                window.isDragging = false;
+            }
         }
 
         function handleTouchMove(e) {
-            if (window.isDragging) {
+            e.preventDefault();
+            
+            if (e.touches.length === 2 && window.isPinching) {
+                // Pinch zoom
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                const scaleChange = currentDistance / window.initialPinchDistance;
+                params.scale = Math.max(0.1, Math.min(5.0, window.initialScale * scaleChange));
+                spineboy.scale.x = spineboy.scale.y = params.scale;
+                scaleController.updateDisplay();
+            } else if (e.touches.length === 1 && window.isDragging && !window.isPinching) {
+                // Single touch dragging
                 const deltaX = e.touches[0].clientX - window.startMouseX;
                 const deltaY = e.touches[0].clientY - window.startMouseY;
                 
