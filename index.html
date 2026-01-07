@@ -1,12 +1,14 @@
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
     <title>spine-pixi-v8</title>
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
     <script src="./assets/pixi.min.js"></script>
     <script src="./assets/spine-pixi-v8.js"></script>
     <script src="./assets/lil-gui.umd.min.js"></script>
     <link href="./assets/lil-gui.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../index.css">
     <style>
       html, body {
         margin: 0;
@@ -270,6 +272,7 @@
 
         gui.add({ changeModel: () => {
             const currentModel = models[currentModelIndex];
+            console.log("Version: 3.03 (Code Cleanup / Touchpad Fix / Favicon)");
             console.log("Json:", currentModel.data);
             console.log("Atlas:", currentModel.atlas);
         }}, 'changeModel').name('Debug');
@@ -407,12 +410,6 @@
 
       })();
 
-
-
-
-
-      initializeApp();
-
       let option = {
         models: document.getElementById("optionModels"),
                 skins: document.getElementById("optionSkins"),
@@ -422,7 +419,6 @@
             }
 
             option.autoPos.onchange = function() {
-                    return;
                 if(this.checked) {
                     option.x.disabled = option.y.disabled = true;
                     option.x.value = spineboy.x = window.innerWidth/2;
