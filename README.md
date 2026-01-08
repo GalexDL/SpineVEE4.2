@@ -4,7 +4,7 @@ SpineVEE 4.2+ Rewrite test
 
 # v3.1 Update (January 8, 2026)
 
-There are improvements that can be made with the video exporting stuff but it properly works on all browsers, that is all i care about. This should be a very solid template to build off on. Might make a gui for the converter. I suppose there could be a way to add the conversion like system but, is there much of a difference to basically have a translation layer? I suppose to perserve the files and their sizes. Not sure if live making 2.3x file sizes will have a major impact on performance on browsers. also no local loading becuase arggggggggggggggggggggggggggggggggggggggggggggggggggggggggh, feel free to figure that out for me 
+There are improvements that can be made with the video exporting stuff but it properly works on all browsers (oh it doesnt), that is all i care about. This should be a very solid template to build off on. Might make a gui for the converter. I suppose there could be a way to add the conversion like system but, is there much of a difference to basically have a translation layer? I suppose to perserve the files and their sizes. Not sure if live making 2.3x file sizes will have a major impact on performance on browsers. also no local loading becuase arggggggggggggggggggggggggggggggggggggggggggggggggggggggggh, feel free to figure that out for me 
 
 -  1 New Pokemon Model (I was testing conversion stuff)
 -  Skins properly dynmically populate and arent hardcoded
