@@ -1,7 +1,22 @@
 # SpineVEE4.2
 SpineVEE 4.2+ Rewrite test
 
-# V3 Update (January 7, 2026)
+
+# v3.1 Update (January 8, 2026)
+
+There are improvements that can be made with the video exporting stuff but it properly works on all browsers, that is all i care about. This should be a very solid template to build off on. Might make a gui for the converter. I suppose there could be a way to add the conversion like system but, is there much of a difference to basically have a translation layer? I suppose to perserve the files and their sizes. Not sure if live making 2.3x file sizes will have a major impact on performance on browsers. 
+
+-  1 New Pokemon Model (I was testing conversion stuff)
+-  Skins properly dynmically populate and arent hardcoded
+-  Loop Toggle for animations (its a bit funky animation to animation due to how they might be automatically coded to loop)
+-  Listed a conversion tool to update models to 4.2.
+   https://github.com/wang606/SpineSkeletonDataConverter
+-  Screenshot & Video Export
+-  Background Color Picker
+
+
+
+# v3 Update (January 7, 2026)
 
 I randomly decided to update this after how long lol.
 
