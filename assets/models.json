@@ -58,5 +58,10 @@
         "name": "Lynae",
         "data": "WuWa/Lynae/c_linnai_1.json",
         "atlas": "WuWa/Lynae/c_linnai_1.atlas"
+    },
+    {
+        "name": "Venusaur",
+        "data": "WuWa/pokemon_1/Normal/stand.json",
+        "atlas": "WuWa/pokemon_1/Normal/stand.atlas"
     }
 ]
