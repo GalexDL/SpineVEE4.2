@@ -1,0 +1,27 @@
+yiwai2.png
+size: 4096, 4096
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+yiwai_1
+  rotate: false
+  xy: 1806, 48
+  size: 669, 1548
+  orig: 891, 1548
+  offset: 0, 0
+  index: -1
+yiwai_2
+  rotate: true
+  xy: 2, 2
+  size: 1594, 1802
+  orig: 2248, 1802
+  offset: 654, 0
+  index: -1
+yiwai_3
+  rotate: false
+  xy: 2, 1597
+  size: 3202, 1800
+  orig: 6244, 4367
+  offset: 2617, 2524
+  index: -1
+
