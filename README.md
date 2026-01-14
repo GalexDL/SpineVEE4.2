@@ -1,6 +1,10 @@
 # SpineVEE4.2
 SpineVEE 4.2+ Rewrite test
 
+# v3.1.1 (January 13, 2026)
+ - Video Export removed cuz of performance issues
+ - Updated Image Export to be higher quality with adjustable scale factor
+ - rotation control added
 
 # v3.1 Update (January 8, 2026)
 
