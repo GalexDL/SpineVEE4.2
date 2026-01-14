@@ -76,9 +76,10 @@
         scale: 1.00,
         posx: 0,
         posy: 0,
+        rotation: 0,
+        exportScaleFactor: 1,
         loop: true,
         backgroundColor: '#2c3e50',
-        framerate: 60,
       };
       let myObject = {
         time: 0,
@@ -219,6 +220,14 @@
             params.posy = spineboy.y;
             posyController.updateDisplay();
         });
+        ///////////////////
+        //Rotation
+        const rotationController = folderTransform
+          .add(params, 'rotation', 0, 360).step(1.00)
+          .name('Rotation (degrees)')
+          .onChange(() => {
+            spineboy.rotation = (params.rotation * Math.PI) / 180;
+          });
 
         /////////////////////////////////////
         //Style
@@ -312,7 +321,7 @@
         folderStyle.add(playbackControl, 'Play/Pause');
         folderStyle.add(playbackControl, 'Last Frame');
         
-        //Time Scrubber
+        //Timeline 
         const animTimeController = folderStyle
         .add(myObject, 'time').min(0).max(spineboy.skeleton.data.animations[0].duration).step(0.001)
           .name( 'Animation Time' )
@@ -326,7 +335,6 @@
             }
           });
         
-        // Initialize timeline range
         updateTimelineRange();
         /////////////////////////////////
 
@@ -337,108 +345,59 @@
         ////////////////////////
         // Recording 
         ////////////////////////
-        let isRecording = false;
-        let mediaRecorder = null;
-        let recordedChunks = [];
-        // Framerate 
-        folderExport
-          .add(params, 'framerate', 10, 120).step(1)
-          .name('Video Framerate (FPS)');
-        // WEBM Recording button
-        folderExport.add({ 
-          recordMP4: async () => {
-            if (isRecording) {
-              console.log('Already recording, please wait...');
-              return;
-            }
-            
-            const currentAnim = spineboy.skeleton.data.findAnimation(objAnim.Animation);
-            if (!currentAnim) {
-              console.error('No animation selected');
-              return;
-            }
-            
-            isRecording = true;
-            recordedChunks = [];
-            const duration = currentAnim.duration;
-            
-            console.log(`Recording video for ${duration.toFixed(2)} seconds at ${params.framerate} FPS...`);
-            
-            const canvas = app.view;
-            const stream = canvas.captureStream(params.framerate);
-            
-            let options;
-            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
-              options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 25000000 };
-            } else if (MediaRecorder.isTypeSupported('video/webm')) {
-              options = { mimeType: 'video/webm', videoBitsPerSecond: 25000000 };
-            } else if (MediaRecorder.isTypeSupported('video/mp4')) {
-              options = { mimeType: 'video/mp4', videoBitsPerSecond: 25000000 };
-            } else {
-              options = { videoBitsPerSecond: 25000000 }; // default codec with high bitrate
-            }
-            
-            mediaRecorder = new MediaRecorder(stream, options);
-              
-              mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                  recordedChunks.push(event.data);
-                }
-              };
-              
-              mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                link.download = `spine-animation-${timestamp}.webm`;
-                link.href = url;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                isRecording = false;
-                console.log('Video saved!');
-              };
-              
-              // restart animation to start and play
-              spineboy.state.setAnimation(0, objAnim.Animation, false);
-              spineboy.state.tracks[0].timeScale = 1;
-              spineboy.state.tracks[0].trackTime = 0;
-              
-              // Start recording
-              mediaRecorder.start();
-              
-              // Stop recording after animation duration
-              setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                  mediaRecorder.stop();
-                  if (spineboy.state.tracks[0]) {
-                    spineboy.state.tracks[0].timeScale = 0;
-                  }
-                }
-              }, (duration * 1000) + 100); 
-          }
-        }, 'recordMP4').name('🎬 Record as Video');
+
 
         ////////////////////////
         // Screenshot button
         ////////////////////////
-        folderExport.add({ 
-          takeScreenshot: async () => {
-            // Use PIXI's extract to properly capture the rendered stage
+        
+        folderExport.add({
+          takeScreenshotLow: async () => {
+            const scaleFactor = params.exportScaleFactor;
+            const origWidth = app.renderer.width;
+            const origHeight = app.renderer.height;
+            const origResolution = app.renderer.resolution;
+
+            // temp resize for higher resolution 
+            app.renderer.resolution = 1;
+            app.renderer.resize(origWidth * scaleFactor, origHeight * scaleFactor);
+            
+            // lock scale to 1.0 for export, only apply resolution scale factor, becuase the bigger the more pain 
+            const oldScaleX = spineboy.scale.x;
+            const oldScaleY = spineboy.scale.y;
+            const oldX = spineboy.x;
+            const oldY = spineboy.y;
+            spineboy.scale.x = scaleFactor;
+            spineboy.scale.y = scaleFactor;
+            spineboy.x *= scaleFactor;
+            spineboy.y *= scaleFactor;
+
+            // Render and extract at higher resolution
+            app.renderer.render(app.stage);
             const image = await app.renderer.extract.image(app.stage);
             
-            // Create a temporary link element and trigger download
+            // create download link
             const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            link.download = `spine-screenshot-${timestamp}.png`;
+            link.download = `spinevee-export-${timestamp}.png`;
             link.href = image.src;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // restore original size and scale
+            spineboy.scale.x = oldScaleX;
+            spineboy.scale.y = oldScaleY;
+            spineboy.x = oldX;
+            spineboy.y = oldY;
+            app.renderer.resize(origWidth, origHeight);
+            app.renderer.resolution = origResolution;
+            app.renderer.render(app.stage);
           }
-        }, 'takeScreenshot').name('📷 Export as PNG');
+        }, 'takeScreenshotLow').name('📷 Export as PNG');
+
+        // Export scale factor slider
+        folderExport.add(params, 'exportScaleFactor', 0.1, 2.0).step(0.1).name('Scale Factor');
 
 
 
@@ -452,9 +411,10 @@
             window.open('https://github.com/wang606/SpineSkeletonDataConverter', '_blank');
           }
         }, 'openConverter').name('Spine Converter Tool');
+        // version
         gui.add({ changeModel: () => {
             const currentModel = models[currentModelIndex];
-            console.log("Version: 3.1 (Skin dynamic pop Fixed, Loop Toggle, Conversion Test, Screenshot & Video Export, Background Picker)");
+            console.log("Version: 3.1.1 (Video Export removed cuz of performance issues, Updated Image Export to be higher quality with adjustable scale factor, rotation control added)");
             console.log("Json:", currentModel.data);
             console.log("Atlas:", currentModel.atlas);
         }}, 'changeModel').name('Debug');

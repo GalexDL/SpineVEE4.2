@@ -63,5 +63,15 @@
         "name": "Venusaur",
         "data": "WuWa/pokemon_1/Normal/stand.json",
         "atlas": "WuWa/pokemon_1/Normal/stand.atlas"
+    },
+    {
+        "name": "Event",
+        "data": "WuWa/Event/c_qianxiao_1.skel",
+        "atlas": "WuWa/Event/c_qianxiao_1.atlas"
+    },
+    {
+        "name": "Evensft",
+        "data": "WuWa/Event/yiwai2.skel",
+        "atlas": "WuWa/Event/yiwai2.atlas"
     }
 ]
