@@ -552,13 +552,6 @@
         //Debug
         //////////////////////////////////////
         
-        // Load Custom Model button
-        gui.add({
-          loadCustom: () => {
-            document.getElementById('customFileInput').click();
-          }
-        }, 'loadCustom').name('\u{1F4C1} Load Custom Model');
-
         // Handle custom file selection
         document.getElementById('customFileInput').addEventListener('change', async (e) => {
           if (!e.target.files || e.target.files.length === 0) return;
