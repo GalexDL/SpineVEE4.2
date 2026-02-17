@@ -1,6 +1,14 @@
 # SpineVEE4.2
 SpineVEE 4.2+ Rewrite test
 
+# v4.0 Update (February 17, 2026)
+
+Finally Figured Out BLOBs, aka you can now import custom models without hosting them, just select the files or drag and drop them in!
+
+ - Custom Spine Model Imports
+ - Drag/Drop File Support
+ - Minor Tweaks to improve transperency (someone help with mp4 export plz)
+
 # v3.1.1 (January 13, 2026)
  - Video Export removed cuz of performance issues
  - Updated Image Export to be higher quality with adjustable scale factor
