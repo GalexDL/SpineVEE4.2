@@ -45,10 +45,53 @@
         height: 28px;
         fill: white;
       }
+
+      /* Custom file upload styles */
+      #customFileInput {
+        display: none;
+      }
+      .drop-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(44, 62, 80, 0.85);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .drop-overlay.active {
+        display: flex;
+      }
+      .drop-overlay-inner {
+        border: 3px dashed rgba(255,255,255,0.6);
+        border-radius: 16px;
+        padding: 48px 64px;
+        text-align: center;
+        color: #fff;
+        font-family: sans-serif;
+      }
+      .drop-overlay-inner h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        font-weight: 600;
+      }
+      .drop-overlay-inner p {
+        margin: 0;
+        font-size: 14px;
+        opacity: 0.7;
+      }
     </style>
   </head>
 
   <body>
+    <input type="file" id="customFileInput" multiple accept=".atlas,.skel,.json,.png">
+    <div class="drop-overlay" id="dropOverlay">
+      <div class="drop-overlay-inner">
+        <h2>Drop Spine Files Here</h2>
+        <p>.atlas + .skel/.json + .png textures</p>
+      </div>
+    </div>
     <a href="https://github.com/GalexDL/SpineVEE4.2" target="_blank" class="github-corner" title="View on GitHub">
       <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
@@ -86,6 +129,95 @@
         myNumber: 1
       };
       let prevValue = myObject.time;
+
+      async function loadCustomModel(files) {
+        const filesByExt = {};
+        for (const file of files) {
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (!filesByExt[ext]) filesByExt[ext] = [];
+          filesByExt[ext].push(file);
+        }
+
+        const atlasFiles = filesByExt['atlas'] || [];
+        const skelFiles = filesByExt['skel'] || [];
+        const jsonFiles = filesByExt['json'] || [];
+        const pngFiles = filesByExt['png'] || [];
+
+        const atlasFile = atlasFiles[0];
+        const dataFile = skelFiles[0] || jsonFiles[0];
+
+        if (!atlasFile) {
+          alert('Missing .atlas file. Please select at least a .atlas file and a .skel or .json skeleton file, plus texture .png files.');
+          return null;
+        }
+        if (!dataFile) {
+          alert('Missing skeleton file. Please select a .skel or .json skeleton data file.');
+          return null;
+        }
+
+        // Load PNG textures into SpineTexture objects
+        const textureMap = {};
+        for (const pngFile of pngFiles) {
+          const blobUrl = URL.createObjectURL(pngFile);
+          const img = new Image();
+          img.src = blobUrl;
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+          URL.revokeObjectURL(blobUrl);
+          const source = new PIXI.ImageSource({ resource: img });
+          textureMap[pngFile.name] = spine.SpineTexture.from(source);
+        }
+
+        // Parse atlas text and assign textures to pages
+        const atlasText = await atlasFile.text();
+        const textureAtlas = new spine.TextureAtlas(atlasText);
+        const textureLayers = textureAtlas.pages;
+        const missingTextureLayers = [];
+        for (const textureLayer of textureLayers) {
+          const tex = textureMap[textureLayer.name];
+          if (tex) {
+            textureLayer.setTexture(tex);
+          } else {
+            missingTextureLayers.push(textureLayer.name);
+          }
+        }
+        if (missingTextureLayers.length > 0) {
+          alert('Missing texture(s) referenced by the atlas: ' + missingTextureLayers.join(', ') + '\nPlease include the .png file(s).');
+          return null;
+        }
+
+        // Parse skeleton data
+        const attachmentLoader = new spine.AtlasAttachmentLoader(textureAtlas);
+        let skeletonData;
+        if (dataFile.name.toLowerCase().endsWith('.skel')) {
+          const buffer = await dataFile.arrayBuffer();
+          const parser = new spine.SkeletonBinary(attachmentLoader);
+          skeletonData = parser.readSkeletonData(new Uint8Array(buffer));
+        } else {
+          const text = await dataFile.text();
+          const jsonData = JSON.parse(text);
+          const parser = new spine.SkeletonJson(attachmentLoader);
+          skeletonData = parser.readSkeletonData(jsonData);
+        }
+
+        // Create Spine display object
+        const spineObj = new spine.Spine({ skeletonData });
+        spineObj.state.data.defaultMix = 0.2;
+        spineObj.x = window.innerWidth / 2;
+        spineObj.y = window.innerHeight / 2;
+
+        params.scale = 1.00;
+        params.posx = spineObj.x;
+        params.posy = spineObj.y;
+
+        if (spineObj.skeleton.data.animations.length > 0) {
+          spineObj.state.setAnimation(0, spineObj.skeleton.data.animations[0].name, params.loop);
+        }
+
+        return spineObj;
+      }
 
       async function loadModel(modelIndex) {
         const currentModel = models[modelIndex];
@@ -142,6 +274,7 @@
           backgroundColor: 0x2c3e50,
           hello: true,
         })
+        app.renderer.background.alpha = 1;
         app.view.id = "screen";
         document.body.appendChild(app.view);
 
@@ -154,10 +287,14 @@
         const modelNames = models.map(m => m.name);
         const objAnimm = { Model: modelNames[0] }
 
-        gui
+        const modelController = gui
         .add(objAnimm, 'Model', modelNames)
           .onChange(async (value) => {
             const newIndex = models.findIndex(m => m.name === value);
+            if (newIndex < 0 || !models[newIndex].data) {
+              // Custom model entry — can only be loaded via file picker
+              return;
+            }
             currentModelIndex = newIndex;
             
             // Remove old model and load new one
@@ -185,6 +322,13 @@
             posyController.updateDisplay();
             scaleController.updateDisplay();
           });
+
+        // 'Load Custom Model' button under the model selector (remember plz plz plz)
+        modelController.parent.add({
+          loadCustom: () => {
+            document.getElementById('customFileInput').click();
+          }
+        }, 'loadCustom').name('\u{1F4C1} Load Custom Model');
 
         //Model 1
         const folderModel1 = gui.addFolder( 'Base Model' );
@@ -232,6 +376,7 @@
         /////////////////////////////////////
         //Style
         //////////////////////////////////////
+        
         // Background Color
         folderStyle
           .addColor(params, 'backgroundColor')
@@ -250,6 +395,7 @@
             spineboy.skeleton.setSkinByName(value);
             spineboy.skeleton.setSlotsToSetupPose();
           });
+
         //Animation
         objAnim = { Animation: spineboy.skeleton.data.animations.length > 0 ? spineboy.skeleton.data.animations[0].name : 'idle'}
         const animationNames = spineboy.skeleton.data.animations.map(anim => anim.name);
@@ -343,7 +489,7 @@
 
 
         ////////////////////////
-        // Recording 
+        // Recording (lol)
         ////////////////////////
 
 
@@ -405,6 +551,116 @@
         //Debug
         //////////////////////////////////////
         
+        // Load Custom Model button
+        gui.add({
+          loadCustom: () => {
+            document.getElementById('customFileInput').click();
+          }
+        }, 'loadCustom').name('\u{1F4C1} Load Custom Model');
+
+        // Handle custom file selection
+        document.getElementById('customFileInput').addEventListener('change', async (e) => {
+          if (!e.target.files || e.target.files.length === 0) return;
+          try {
+            const newSpine = await loadCustomModel(e.target.files);
+            if (!newSpine) return;
+            app.stage.removeChild(spineboy);
+            spineboy = newSpine;
+            app.stage.addChild(spineboy);
+
+            // Update Model dropdown to show custom name
+            const customName = 'Custom Model';
+            if (!models.find(m => m.name === customName)) {
+              models.push({ name: customName, data: '', atlas: '' });
+              const newModelNames = models.map(m => m.name);
+              modelController.options(newModelNames);
+            }
+            objAnimm.Model = customName;
+            modelController.updateDisplay();
+
+            // Update skins
+            const newSkinNames = spineboy.skeleton.data.skins.map(skin => skin.name);
+            objSkin.Skin = newSkinNames[0] || 'default';
+            skinController.options(newSkinNames);
+            skinController.updateDisplay();
+
+            // Update animations
+            const newAnimNames = spineboy.skeleton.data.animations.map(anim => anim.name);
+            objAnim.Animation = newAnimNames[0];
+            animController.options(newAnimNames);
+            animController.updateDisplay();
+
+            updateTimelineRange();
+            scaleController.updateDisplay();
+            posxController.updateDisplay();
+            posyController.updateDisplay();
+          } catch (err) {
+            console.error('Failed to load custom model:', err);
+            alert('Failed to load custom model: ' + err.message);
+          }
+          e.target.value = '';
+        });
+
+        // Drag-and-drop support
+        const dropOverlay = document.getElementById('dropOverlay');
+        let dragCounter = 0;
+        document.addEventListener('dragenter', (e) => {
+          e.preventDefault();
+          dragCounter++;
+          dropOverlay.classList.add('active');
+        });
+        document.addEventListener('dragleave', (e) => {
+          e.preventDefault();
+          dragCounter--;
+          if (dragCounter <= 0) {
+            dragCounter = 0;
+            dropOverlay.classList.remove('active');
+          }
+        });
+        document.addEventListener('dragover', (e) => {
+          e.preventDefault();
+        });
+        document.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          dragCounter = 0;
+          dropOverlay.classList.remove('active');
+          if (!e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+          try {
+            const newSpine = await loadCustomModel(e.dataTransfer.files);
+            if (!newSpine) return;
+            app.stage.removeChild(spineboy);
+            spineboy = newSpine;
+            app.stage.addChild(spineboy);
+
+            const customName = 'Custom Model';
+            if (!models.find(m => m.name === customName)) {
+              models.push({ name: customName, data: '', atlas: '' });
+              const newModelNames = models.map(m => m.name);
+              modelController.options(newModelNames);
+            }
+            objAnimm.Model = customName;
+            modelController.updateDisplay();
+
+            const newSkinNames = spineboy.skeleton.data.skins.map(skin => skin.name);
+            objSkin.Skin = newSkinNames[0] || 'default';
+            skinController.options(newSkinNames);
+            skinController.updateDisplay();
+
+            const newAnimNames = spineboy.skeleton.data.animations.map(anim => anim.name);
+            objAnim.Animation = newAnimNames[0];
+            animController.options(newAnimNames);
+            animController.updateDisplay();
+
+            updateTimelineRange();
+            scaleController.updateDisplay();
+            posxController.updateDisplay();
+            posyController.updateDisplay();
+          } catch (err) {
+            console.error('Failed to load custom model:', err);
+            alert('Failed to load dropped model: ' + err.message);
+          }
+        });
+
         // Converter link button
         gui.add({ 
           openConverter: () => {
@@ -414,7 +670,7 @@
         // version
         gui.add({ changeModel: () => {
             const currentModel = models[currentModelIndex];
-            console.log("Version: 3.1.1 (Video Export removed cuz of performance issues, Updated Image Export to be higher quality with adjustable scale factor, rotation control added)");
+            console.log("Version: 4.0 (Finally Figured Out BLOBs, aka you can now import custom models without hosting them, just select the files or drag and drop them in!)");
             console.log("Json:", currentModel.data);
             console.log("Atlas:", currentModel.atlas);
         }}, 'changeModel').name('Debug');
