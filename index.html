@@ -85,7 +85,7 @@
   </head>
 
   <body>
-    <input type="file" id="customFileInput" multiple accept=".atlas,.skel,.json,.png">
+    <input type="file" id="customFileInput" multiple accept=".atlas,.skel,.json,.png,.webp">
     <div class="drop-overlay" id="dropOverlay">
       <div class="drop-overlay-inner">
         <h2>Drop Spine Files Here</h2>
@@ -155,10 +155,11 @@
           return null;
         }
 
-        // Load PNG textures into SpineTexture objects
+        // Load PNG and WebP textures into SpineTexture objects
         const textureMap = {};
-        for (const pngFile of pngFiles) {
-          const blobUrl = URL.createObjectURL(pngFile);
+        const imageFiles = [...pngFiles, ...(filesByExt['webp'] || [])];
+        for (const imageFile of imageFiles) {
+          const blobUrl = URL.createObjectURL(imageFile);
           const img = new Image();
           img.src = blobUrl;
           await new Promise((resolve, reject) => {
@@ -167,7 +168,7 @@
           });
           URL.revokeObjectURL(blobUrl);
           const source = new PIXI.ImageSource({ resource: img });
-          textureMap[pngFile.name] = spine.SpineTexture.from(source);
+          textureMap[imageFile.name] = spine.SpineTexture.from(source);
         }
 
         // Parse atlas text and assign textures to pages
@@ -184,7 +185,7 @@
           }
         }
         if (missingTextureLayers.length > 0) {
-          alert('Missing texture(s) referenced by the atlas: ' + missingTextureLayers.join(', ') + '\nPlease include the .png file(s).');
+          alert('Missing texture(s) referenced by the atlas: ' + missingTextureLayers.join(', ') + '\nPlease include the .png or .webp file(s).');
           return null;
         }
 
