@@ -1,6 +1,16 @@
 # SpineVEE4.2
 SpineVEE 4.2+ Rewrite test
 
+# v4.1 Update (March 21, 2026)
+
+I forgot to update, i think i was messing around with spine conversion but it was a bit convulated
+
+ - Atlas Parts Editor
+ - Animation Speed Control, 
+ - Model Debug Options
+ - (someone help with mp4 export plz)
+
+
 # v4.0 Update (February 17, 2026)
 
 Finally Figured Out BLOBs, aka you can now import custom models without hosting them, just select the files or drag and drop them in!
