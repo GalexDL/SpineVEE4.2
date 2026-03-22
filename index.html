@@ -122,6 +122,7 @@
         rotation: 0,
         exportScaleFactor: 1,
         loop: true,
+        speed: 1.0,
         backgroundColor: '#2c3e50',
       };
       let myObject = {
@@ -302,6 +303,7 @@
             app.stage.removeChild(spineboy);
             spineboy = await loadModel(newIndex);
             app.stage.addChild(spineboy);
+            applyDebugFlags();
             
             // Populate Skins
             const newSkinNames = spineboy.skeleton.data.skins.map(skin => skin.name);
@@ -322,9 +324,12 @@
             posxController.updateDisplay();
             posyController.updateDisplay();
             scaleController.updateDisplay();
+
+            // Repopulate parts
+            populateParts();
           });
 
-        // 'Load Custom Model' button under the model selector (remember plz plz plz)
+        // 'Load Custom Model' button under the model selector (remember plz plz plz (iforgor))
         modelController.parent.add({
           loadCustom: () => {
             document.getElementById('customFileInput').click();
@@ -335,7 +340,202 @@
         const folderModel1 = gui.addFolder( 'Base Model' );
         const folderTransform = folderModel1.addFolder( 'Transformation' );
         const folderStyle = folderModel1.addFolder( 'Style' );
+        const folderParts = folderModel1.addFolder( 'Parts' );
         const folderExport = folderModel1.addFolder( 'Export' );
+        const folderDebugModel = folderModel1.addFolder( 'Debug Model' );
+        folderDebugModel.close();
+
+        // Debug renderer setup
+        const debugRenderer = new spine.SpineDebugRenderer();
+        debugRenderer.drawBones = false;
+        debugRenderer.drawRegionAttachments = false;
+        debugRenderer.drawClipping = false;
+        debugRenderer.drawMeshHull = false;
+        debugRenderer.drawMeshTriangles = false;
+        debugRenderer.drawPaths = false;
+        debugRenderer.drawBoundingBoxes = false;
+
+        const debugFlags = {
+          'Draw Bones': false,
+          'Draw Region Attachments': false,
+          'Draw Clipping': false,
+          'Draw Mesh Hull': false,
+          'Draw Mesh Triangles': false,
+          'Draw Paths': false,
+          'Draw Bounding Boxes': false,
+        };
+
+        function applyDebugFlags() {
+          const anyEnabled = Object.values(debugFlags).some(v => v);
+          debugRenderer.drawBones = debugFlags['Draw Bones'];
+          debugRenderer.drawRegionAttachments = debugFlags['Draw Region Attachments'];
+          debugRenderer.drawClipping = debugFlags['Draw Clipping'];
+          debugRenderer.drawMeshHull = debugFlags['Draw Mesh Hull'];
+          debugRenderer.drawMeshTriangles = debugFlags['Draw Mesh Triangles'];
+          debugRenderer.drawPaths = debugFlags['Draw Paths'];
+          debugRenderer.drawBoundingBoxes = debugFlags['Draw Bounding Boxes'];
+          spineboy.debug = anyEnabled ? debugRenderer : undefined;
+        }
+
+        for (const flag of Object.keys(debugFlags)) {
+          folderDebugModel.add(debugFlags, flag).onChange(() => { applyDebugFlags(); });
+        }
+
+        // Parts (slots) selection + visibility + tint + transform
+        let partsObj = { Part: '', Visible: true, Tint: 0xffffff, ScaleX: 1, ScaleY: 1, OffsetX: 0, OffsetY: 0, Index: 0 };
+        let partsController = null;
+        let partVisibleController = null;
+        let partTintController = null;
+        let partScaleXController = null;
+        let partScaleYController = null;
+        let partOffsetXController = null;
+        let partOffsetYController = null;
+        let partIndexController = null;
+
+        function getSelectedSlot() {
+          return spineboy.skeleton.findSlot(partsObj.Part);
+        }
+
+        function getSelectedSlotIndex() {
+          const slots = spineboy.skeleton.slots;
+          for (let i = 0; i < slots.length; i++) {
+            if (slots[i].data.name === partsObj.Part) return i;
+          }
+          return -1;
+        }
+
+        function updatePartControls() {
+          const slot = getSelectedSlot();
+          if (slot) {
+            partsObj.Visible = slot.color.a > 0;
+            const r = Math.round(slot.color.r * 255);
+            const g = Math.round(slot.color.g * 255);
+            const b = Math.round(slot.color.b * 255);
+            partsObj.Tint = (r << 16) + (g << 8) + b;
+            // Bone scale & position offsets
+            if (slot.bone) {
+              partsObj.ScaleX = slot.bone.scaleX;
+              partsObj.ScaleY = slot.bone.scaleY;
+              partsObj.OffsetX = slot.bone.x;
+              partsObj.OffsetY = slot.bone.y;
+            }
+            partsObj.Index = getSelectedSlotIndex();
+          }
+          if (partVisibleController) partVisibleController.updateDisplay();
+          if (partTintController) partTintController.updateDisplay();
+          if (partScaleXController) partScaleXController.updateDisplay();
+          if (partScaleYController) partScaleYController.updateDisplay();
+          if (partOffsetXController) partOffsetXController.updateDisplay();
+          if (partOffsetYController) partOffsetYController.updateDisplay();
+          if (partIndexController) partIndexController.updateDisplay();
+        }
+
+        function populateParts() {
+          if (partsController) partsController.destroy();
+          if (partVisibleController) partVisibleController.destroy();
+          if (partTintController) partTintController.destroy();
+          if (partScaleXController) partScaleXController.destroy();
+          if (partScaleYController) partScaleYController.destroy();
+          if (partOffsetXController) partOffsetXController.destroy();
+          if (partOffsetYController) partOffsetYController.destroy();
+          if (partIndexController) partIndexController.destroy();
+
+          const slotNames = spineboy.skeleton.slots.map(s => s.data.name);
+          partsObj.Part = slotNames[0] || '';
+          partsObj.Visible = true;
+          partsObj.Tint = 0xffffff;
+          partsObj.ScaleX = 1;
+          partsObj.ScaleY = 1;
+          partsObj.OffsetX = 0;
+          partsObj.OffsetY = 0;
+          partsObj.Index = 0;
+
+          partsController = folderParts
+            .add(partsObj, 'Part', slotNames)
+            .name('Part')
+            .onChange(() => { updatePartControls(); });
+
+          partVisibleController = folderParts
+            .add(partsObj, 'Visible')
+            .name('Visible')
+            .onChange((value) => {
+              const slot = getSelectedSlot();
+              if (slot) {
+                slot.color.a = value ? 1 : 0;
+              }
+            });
+
+          partTintController = folderParts
+            .addColor(partsObj, 'Tint')
+            .name('Tint Color')
+            .onChange((value) => {
+              const slot = getSelectedSlot();
+              if (slot) {
+                const hex = typeof value === 'string' ? parseInt(value.replace('#', ''), 16) : value;
+                slot.color.r = ((hex >> 16) & 0xff) / 255;
+                slot.color.g = ((hex >> 8) & 0xff) / 255;
+                slot.color.b = (hex & 0xff) / 255;
+              }
+            });
+
+          partScaleXController = folderParts
+            .add(partsObj, 'ScaleX', -5, 5).step(0.01)
+            .name('Scale X')
+            .onChange((value) => {
+              const slot = getSelectedSlot();
+              if (slot && slot.bone) {
+                slot.bone.scaleX = value;
+              }
+            });
+
+          partScaleYController = folderParts
+            .add(partsObj, 'ScaleY', -5, 5).step(0.01)
+            .name('Scale Y')
+            .onChange((value) => {
+              const slot = getSelectedSlot();
+              if (slot && slot.bone) {
+                slot.bone.scaleY = value;
+              }
+            });
+
+          partOffsetXController = folderParts
+            .add(partsObj, 'OffsetX', -2000, 2000).step(1)
+            .name('Offset X')
+            .onChange((value) => {
+              const slot = getSelectedSlot();
+              if (slot && slot.bone) {
+                slot.bone.x = value;
+              }
+            });
+
+          partOffsetYController = folderParts
+            .add(partsObj, 'OffsetY', -2000, 2000).step(1)
+            .name('Offset Y')
+            .onChange((value) => {
+              const slot = getSelectedSlot();
+              if (slot && slot.bone) {
+                slot.bone.y = value;
+              }
+            });
+
+          partIndexController = folderParts
+            .add(partsObj, 'Index', 0, Math.max(slotNames.length - 1, 0)).step(1)
+            .name('Draw Index')
+            .onChange((value) => {
+              const slots = spineboy.skeleton.slots;
+              const currentIdx = getSelectedSlotIndex();
+              if (currentIdx < 0 || currentIdx === value) return;
+              const targetIdx = Math.min(Math.max(Math.round(value), 0), slots.length - 1);
+              // Swap draw order by moving slot
+              const slot = slots.splice(currentIdx, 1)[0];
+              slots.splice(targetIdx, 0, slot);
+              spineboy.skeleton.drawOrder = [...slots];
+            });
+
+          updatePartControls();
+        }
+
+        populateParts();
 
         ///////////////////
         //Transformation
@@ -417,7 +617,7 @@
             isPlaying = !isPlaying;
             if (spineboy.state.tracks[0]) {
               if (isPlaying) {
-                spineboy.state.tracks[0].timeScale = 1;
+                spineboy.state.tracks[0].timeScale = params.speed;
               } else {
                 spineboy.state.tracks[0].timeScale = 0;
               }
@@ -467,6 +667,16 @@
         folderStyle.add(playbackControl, 'First Frame');
         folderStyle.add(playbackControl, 'Play/Pause');
         folderStyle.add(playbackControl, 'Last Frame');
+
+        // Animation Speed
+        folderStyle
+          .add(params, 'speed', 0, 3.0).step(0.05)
+          .name('Animation Speed')
+          .onChange((value) => {
+            if (spineboy.state.tracks[0] && isPlaying) {
+              spineboy.state.tracks[0].timeScale = value;
+            }
+          });
         
         //Timeline 
         const animTimeController = folderStyle
@@ -561,6 +771,7 @@
             app.stage.removeChild(spineboy);
             spineboy = newSpine;
             app.stage.addChild(spineboy);
+            applyDebugFlags();
 
             // Update Model dropdown to show custom name
             const customName = 'Custom Model';
@@ -588,6 +799,9 @@
             scaleController.updateDisplay();
             posxController.updateDisplay();
             posyController.updateDisplay();
+
+            // Repopulate parts
+            populateParts();
           } catch (err) {
             console.error('Failed to load custom model:', err);
             alert('Failed to load custom model: ' + err.message);
@@ -625,6 +839,7 @@
             app.stage.removeChild(spineboy);
             spineboy = newSpine;
             app.stage.addChild(spineboy);
+            applyDebugFlags();
 
             const customName = 'Custom Model';
             if (!models.find(m => m.name === customName)) {
@@ -649,7 +864,8 @@
             scaleController.updateDisplay();
             posxController.updateDisplay();
             posyController.updateDisplay();
-          } catch (err) {
+            // Repopulate parts
+            populateParts();          } catch (err) {
             console.error('Failed to load custom model:', err);
             alert('Failed to load dropped model: ' + err.message);
           }
@@ -664,7 +880,7 @@
         // version
         gui.add({ changeModel: () => {
             const currentModel = models[currentModelIndex];
-            console.log("Version: 4.0 (Finally Figured Out BLOBs, aka you can now import custom models without hosting them, just select the files or drag and drop them in!)");
+            console.log("Version: 4.1 ( Atlas Parts Editor, Animation Speed Control, Timeline Scrubbing, Model Debug Options)");
             console.log("Json:", currentModel.data);
             console.log("Atlas:", currentModel.atlas);
         }}, 'changeModel').name('Debug');
